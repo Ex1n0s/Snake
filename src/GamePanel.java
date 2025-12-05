@@ -1,36 +1,36 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
+import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
-public class GamePanel extends JPanel implements ActionListener, KeyListener {
+public class GamePanel extends JPanel implements ActionListener {
+    private int APPLE_SIZE = 20,SEGMENT_SIZE = 10;
     private Timer gameTimer;
     private int directionX = 0, directionY = 1;
     private int velocity = 5;
-    private boolean[] keys = new boolean[KeyEvent.KEY_LAST];
     private List<Point> snake;
     private List<Point> storicoPosizioni;
+    private List<Point> apples;
 
     public GamePanel(){
         setBackground(Color.black);
-        setPreferredSize(new Dimension(800,800));
+        setPreferredSize(new Dimension(640,640));
         setOpaque(true);
 
         snake = new ArrayList<>();
         storicoPosizioni = new ArrayList<>();
-        snake.add(new Point(100,100));
-        snake.add(new Point(75,100));
-        snake.add(new Point(50,100));
-        snake.add(new Point(25,100));
-        snake.add(new Point(0,100));
-        snake.add(new Point(-25,100));
-        snake.add(new Point(-50,100));
+        apples = new ArrayList<>();
+
+        int x = 100;
+        for (int i = 0; i < 7; i++){
+            snake.add(new Point(x - 20 * i,100));
+        }
+        spawnApple(3);
+
         setFocusable(true);
-        addKeyListener(this);
+        addKeyListener(new InputHandler());
 
         gameTimer = new Timer(16,this);
         gameTimer.start();
@@ -38,29 +38,14 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-
         //Aggiornamento logica
         update();
         repaint();
     }
 
     private void update(){
-        if(keys[KeyEvent.VK_W]){
-            directionX = 0;
-            directionY = -1;
-        } else if (keys[KeyEvent.VK_S]) {
-            directionX = 0;
-            directionY = 1;
-        } else if (keys[KeyEvent.VK_D]) {
-            directionY = 0;
-            directionX = 1;
-        } else if (keys[KeyEvent.VK_A]) {
-            directionY = 0;
-            directionX = -1;
-        }
-
         moveSnake();
-
+        checkCollisions();
     }
 
     private void moveSnake(){
@@ -89,6 +74,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
+        //Draw dei segmenti del serpente
         for (int i = 0; i < snake.size(); i++) {
             Point point = snake.get(i);
             if(i == 0){
@@ -96,28 +82,66 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             } else {
                 g.setColor(Color.GREEN);
             }
-
-            g.fillRoundRect(point.x, point.y,20,20,20,20);
+            g.fillRect(point.x,point.y,SEGMENT_SIZE,SEGMENT_SIZE);
+            //g.fillRoundRect(point.x, point.y,20,20,20,20);
         }
-
-    }
-
-    @Override
-    public void keyTyped(KeyEvent e) {}
-
-    @Override
-    public void keyPressed(KeyEvent e) {
-        int key = e.getKeyCode();
-        if(key < keys.length){
-            keys[key] = true;
+        for (int i = 0; i < apples.size(); i++) {
+            Point point = apples.get(i);
+            g.fillRoundRect(point.x, point.y,APPLE_SIZE,APPLE_SIZE,20,20);
         }
     }
 
-    @Override
-    public void keyReleased(KeyEvent e) {
-        int key = e.getKeyCode();
-        if(key < keys.length){
-            keys[key] = false;
+    private void spawnApple(int n){
+        Random random = new Random();
+        for (int i = 0; i < n; i++) {
+            int x = random.nextInt(640);
+            int y = random.nextInt(640);
+            apples.add(new Point(x,y));
+        }
+    }
+
+    public void checkCollisions(){
+        for (int i = 0; i < apples.size(); i++) {
+            Point headPosition = snake.getFirst();
+            Point applePosition = apples.get(i);
+            if(headPosition.equals(applePosition)){
+                apples.remove(i);
+                i--;
+            }
+        }
+    }
+
+    private class InputHandler extends KeyAdapter{
+        @Override
+        public void keyPressed(KeyEvent e) {
+            int key = e.getKeyCode();
+            switch (key){
+                case KeyEvent.VK_W:
+                    if(directionY != 1){
+                        directionX = 0;
+                        directionY = -1;
+                    }
+                    break;
+                case KeyEvent.VK_S:
+                    if(directionY != -1){
+                        directionX = 0;
+                        directionY = 1;
+                    }
+                    break;
+                case KeyEvent.VK_D:
+                    if(directionX != -1){
+                        directionY = 0;
+                        directionX = 1;
+                    }
+                    break;
+                case KeyEvent.VK_A:
+                    if (directionX != 1) {
+                        directionY = 0;
+                        directionX = -1;
+                    }
+                default:
+                    break;
+            }
         }
     }
 }
